@@ -11,13 +11,19 @@ using UnityEditor;      //!< デプロイ時にEditorスクリプトが入ると
 public class UIAllControl : MonoBehaviour
 {
     //以下INspectorに表示
-    //Canvasの取得、最初の要素([0])は必ず鬼用のCanvasを入れること
+    //Canvasの取得
     [SerializeField]
     private List<GameObject> CanvasObject;
 
+    [SerializeField]
+    private List<GameObject> OgreObject;
+
     //Canvasに割り当てる用のCameraの取得
     [SerializeField]
-    private List<Camera> CameraObject;
+    private List<GameObject> CameraObject;
+
+    [SerializeField]
+    private List<GameObject> test;
 
     //前Sceneから鬼の取得
     [SerializeField]
@@ -26,7 +32,9 @@ public class UIAllControl : MonoBehaviour
     [SerializeField]
     private int ActivePlayer;
 
+
     private CanvasControl[] CanvasObj = new CanvasControl[4];
+
 
     //汎用カウンター
     private int Counter = 0;
@@ -50,114 +58,33 @@ public class UIAllControl : MonoBehaviour
 
         //各CanbasのSliderControlの参照
         Counter = CanvasObject.Count - 1;
-        bool CarriaPush = false;
 
         do
         {
-            //CanvasCountrolの取得
             CanvasObj[Counter] = CanvasObject[Counter].GetComponent<CanvasControl>();
 
-            //参加人数外のCanvasを見えなくする
             if (Counter >= ActivePlayer)
+            {
+                CameraObject[Counter].transform.parent = null;
+                test[Counter].SetActive(false);
                 CanvasObj[Counter].Black.SetActive(true);
-
-            //Cameraの配置分け
-            switch (Counter)
-            {
-                case 0:
-                    if (Counter == Ogre)
-                    {
-                        CameraObject[0].rect = new Rect(0.0f, 0.5f, 0.5f, 0.5f);
-                        CarriaPush = true;
-                    }
-
-                    else
-                    {
-                        //CanvasをCameraへ振り分け
-                        if (CarriaPush)
-                            CameraObject[Counter + 1].rect = new Rect(0.0f, 0.5f, 0.5f, 0.5f);
-
-                        else
-                            CameraObject[Counter].rect = new Rect(0.0f, 0.5f, 0.5f, 0.5f);
-                    }
-                    break;
-
-
-                case 1:
-                    if (Counter == Ogre)
-                    {
-                        CameraObject[0].rect = new Rect(0.5f, 0.5f, 0.5f, 0.5f);
-                        CarriaPush = true;
-                    }
-
-                    else
-                    {
-                        //CanvasをCameraへ振り分け
-                        if (CarriaPush)
-                            CameraObject[Counter + 1].rect = new Rect(0.5f, 0.5f, 0.5f, 0.5f);
-
-                        else
-                            CameraObject[Counter].rect = new Rect(0.5f, 0.5f, 0.5f, 0.5f);
-                    }
-                    break;
-
-
-                case 2:
-                    if (Counter == Ogre)
-                    {
-                        CameraObject[0].rect = new Rect(0.0f, 0.0f, 0.5f, 0.5f);
-                        CarriaPush = true;
-                    }
-
-                    else
-                    {
-                        //CanvasをCameraへ振り分け
-                        if (CarriaPush)
-                            CameraObject[Counter + 1].rect = new Rect(0.0f, 0.0f, 0.5f, 0.5f);
-
-                        else
-                            CameraObject[Counter].rect = new Rect(0.0f, 0.0f, 0.5f, 0.5f);
-                    }
-                    break;
-
-
-                case 3:
-                    if (Counter == Ogre)
-                    {
-                        CameraObject[0].rect = new Rect(0.5f, 0.0f, 0.5f, 0.5f);
-                        CarriaPush = true;
-                    }
-
-                    else
-                    {
-                        //CanvasをCameraへ振り分け
-                        if (CarriaPush)
-                            CameraObject[Counter + 1].rect = new Rect(0.5f, 0.0f, 0.5f, 0.5f);
-
-                        else
-                            CameraObject[Counter].rect = new Rect(0.5f, 0.0f, 0.5f, 0.5f);
-
-                    }
-                    break;
             }
 
-
-            //Playerのカウント
-            if (Counter != Ogre)
-            {
-                if (CarriaPush)
-                    CanvasObj[Counter + 1].Player.text = Counter + 1 + "P";
-
-                else
-                    CanvasObj[Counter].Player.text = Counter + 1 + "P";
-            }
+            CanvasObj[Counter].Player.text = Counter + 1 + "P";
 
             Counter--;
 
         } while (Counter >= 0);
 
-        Ogre += 1;
-    }
+        //動作可能にする
+        test[Ogre].GetComponent<Test>().OgreF = true;
+
+        OgreObject[Ogre].SetActive(true);
+        CanvasObject[Ogre].SetActive(false);
+
+
+
+        }
 
 
 
@@ -183,10 +110,27 @@ public class UIAllControl : MonoBehaviour
             if (CanvasObj[Counter].StaminaGage > 1)
                 CanvasObj[Counter].StaminaGage = 0;
 
+            //鬼が入れ替わっていた時のCanvasの入れ替え
+            if (!test[Ogre].GetComponent<Test>().OgreF)
+            {
+                if (test[Counter].GetComponent<Test>().OgreF)
+                {
+                    OgreObject[Ogre].SetActive(false);
+                    CanvasObject[Ogre].SetActive(true);
+
+                    OgreObject[Counter].SetActive(true);
+                    CanvasObject[Counter].SetActive(false);
+
+                    Ogre = Counter;
+                }
+            }
 
             Counter--;
             
         } while (Counter >= 0);
+
+       
+
     }
 
 
@@ -212,15 +156,26 @@ public class UIAllControl : MonoBehaviour
     {
         public override void OnInspectorGUI()
         {
+
+            //DefaultInspectorの表示
+            DrawDefaultInspector();
+
+
             //UIAllControlの参照
             UIAllControl UICon = target as UIAllControl;
+
 
             //CanvasObjectのカウント用、要素数のカウント
             int CanCount, Canlen = UICon.CanvasObject.Count;
 
+            //CanvasObjectのカウント用、要素数のカウント
+            int OgreCount, Ogrelen = UICon.OgreObject.Count;
 
             //CameraObjectのカウント用、要素数のカウント
             int CamCount, Camlen = UICon.CameraObject.Count;
+
+            //CPlayerObjectのカウント用、要素数のカウント
+            int PlayCount, Playlen = UICon.test.Count;
 
 
             //CanvasObjectのInspector拡張
@@ -238,18 +193,47 @@ public class UIAllControl : MonoBehaviour
             }
 
 
+            EditorGUILayout.PrefixLabel("Ogreオブジェクト");
+            // リスト表示
+            for (OgreCount = 0; OgreCount < Ogrelen; ++OgreCount)
+            {
+                UICon.OgreObject[OgreCount] = EditorGUILayout.ObjectField(UICon.OgreObject[OgreCount], typeof(GameObject), true) as GameObject;
+            }
+            if (UICon.OgreObject.Count <= 3)
+            {
+                GameObject Ogr = EditorGUILayout.ObjectField("追加", null, typeof(GameObject), true) as GameObject;
+                if (Ogr != null)
+                    UICon.OgreObject.Add(Ogr);
+            }
+
+
             //CameraObjectのInspector拡張
             EditorGUILayout.PrefixLabel("Cameraオブジェクト");
             // リスト表示
             for (CamCount = 0; CamCount < Camlen; ++CamCount)
             {
-                UICon.CameraObject[CamCount] = EditorGUILayout.ObjectField(UICon.CameraObject[CamCount], typeof(Camera), true) as Camera;
+                UICon.CameraObject[CamCount] = EditorGUILayout.ObjectField(UICon.CameraObject[CamCount], typeof(GameObject), true) as GameObject;
             }
             if (UICon.CameraObject.Count <= 3)
             {
-                Camera Cam = EditorGUILayout.ObjectField("追加", null, typeof(Camera), true) as Camera;
+                GameObject Cam = EditorGUILayout.ObjectField("追加", null, typeof(GameObject), true) as GameObject;
                 if (Cam != null)
                     UICon.CameraObject.Add(Cam);
+            }
+
+
+            //test(Prayer)のInspector拡張
+            EditorGUILayout.PrefixLabel("Playerオブジェクト");
+            // リスト表示
+            for (PlayCount = 0; PlayCount < Playlen; ++PlayCount)
+            {
+                UICon.test[PlayCount] = EditorGUILayout.ObjectField(UICon.test[PlayCount], typeof(GameObject), true) as GameObject;
+            }
+            if (UICon.test.Count <= 3)
+            {
+                GameObject Tes = EditorGUILayout.ObjectField("追加", null, typeof(GameObject), true) as GameObject;
+                if (Tes != null)
+                    UICon.test.Add(Tes);
             }
 
             UICon.Ogre = EditorGUILayout.IntField("キャリアプレイヤー(鬼)", UICon.Ogre);

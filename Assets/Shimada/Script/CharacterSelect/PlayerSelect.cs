@@ -90,7 +90,7 @@ public class PlayerSelect : MonoBehaviour
         if (!ShuffleF)
         {
             time += Time.deltaTime;
-            if (time > 3)
+            if (time > 1)
             {
                 SceneManager.LoadScene("UI");
             }
