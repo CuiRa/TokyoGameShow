@@ -5,7 +5,7 @@ using System.Collections;
 
 public class AI : MonoBehaviour
 {
-
+    public GameObject dairi;
     public Transform[] points;
     private int destPoint = 0;
     private NavMeshAgent agent;
@@ -49,11 +49,16 @@ public class AI : MonoBehaviour
             GotoNextPoint();
     }
 
-    void OnTriggerEnter(Collider collider)
+    void OnTriggerEnter(Collider col)
     {
-
-        GotoNextPoint();
-        
+        if (col.tag == "Ogre")
+        {
+            dairi.GetComponent<OgreAI>().SetObject(this.gameObject);
+        }
+        else
+        {
+            Update();
+        }
     }
 
 }

@@ -2,19 +2,26 @@
 using UnityEngine.AI;
 using System.Collections;
 
-
-public class OgreAI : MonoBehaviour
+public class OgreAI: MonoBehaviour
 {
-
     public Transform[] points;
     private int destPoint = 0;
     private NavMeshAgent agent;
     private int alpha; //ランダム
 
+    public GameObject Ogre;
+
+    public void SetObject(GameObject ogre)
+    {
+
+        Ogre = ogre;
+        Ogre.tag = "Ogre";
+
+    }
+
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
-
         // Disabling auto-braking allows for continuous movement
         // between points (ie, the agent doesn't slow down as it
         // approaches a destination point).
@@ -47,5 +54,12 @@ public class OgreAI : MonoBehaviour
         // close to the current one.
         if (!agent.pathPending && agent.remainingDistance < 0.5f) //条件成立で次のポジションに行く
             GotoNextPoint();
+    }
+
+    void OnTriggerEnter(Collider col)
+    {
+       
+            agent.destination = col.transform.position;
+       
     }
 }
