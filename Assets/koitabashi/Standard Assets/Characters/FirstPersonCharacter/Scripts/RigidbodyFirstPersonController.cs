@@ -15,13 +15,17 @@ namespace UnityStandardAssets.Characters.FirstPerson
             public float BackwardSpeed = 4.0f;  // Speed when walking backwards
             public float StrafeSpeed = 4.0f;    // Speed when walking sideways
             public float RunMultiplier = 2.0f;   // Speed when sprinting
-//	        public KeyCode RunKey = KeyCode.LeftShift;
+            public float CrouchMultiplier = 0.5f;   // Speed when sprinting
+            //	        public KeyCode RunKey = KeyCode.LeftShift;
             public float JumpForce = 30f;
             public AnimationCurve SlopeCurveModifier = new AnimationCurve(new Keyframe(-90.0f, 1.0f), new Keyframe(0.0f, 1.0f), new Keyframe(90.0f, 0.0f));
             [HideInInspector] public float CurrentTargetSpeed = 8f;
 
+            [SerializeField] private string playerNum;
+
 #if !MOBILE_INPUT
             private bool m_Running;
+            private bool crouching;
 #endif
 
             public void UpdateDesiredTargetSpeed(Vector2 input)
@@ -44,8 +48,18 @@ namespace UnityStandardAssets.Characters.FirstPerson
 					CurrentTargetSpeed = ForwardSpeed;
 				}
 #if !MOBILE_INPUT
-	            if (Input.GetButton("Dash"))
-	            {
+                if (Input.GetButton("Crouch" + playerNum))
+                {
+                    CurrentTargetSpeed *= CrouchMultiplier;
+//                    crouching = true;
+                }
+                else
+                {
+//                    crouching = false;
+                }
+
+                if (Input.GetButton("Dash" + playerNum))
+                {
 		            CurrentTargetSpeed *= RunMultiplier;
 		            m_Running = true;
 	            }
@@ -57,13 +71,23 @@ namespace UnityStandardAssets.Characters.FirstPerson
             }
 
 #if !MOBILE_INPUT
+/*            public bool Crouching
+            {
+                get { return crouching; }
+            }*/
             public bool Running
             {
                 get { return m_Running; }
             }
 #endif
+            public string PlayerNum
+            {
+                get { return playerNum; }
+            }
         }
-
+/// <summary>
+/// ////+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+/// </summary>
 
         [Serializable]
         public class AdvancedSettings
@@ -79,21 +103,50 @@ namespace UnityStandardAssets.Characters.FirstPerson
 
         public Camera cam;
         public MovementSettings movementSettings = new MovementSettings();
-        public MouseLook mouseLook = new MouseLook();
+//        public MouseLook mouseLook = new MouseLook();
         public AdvancedSettings advancedSettings = new AdvancedSettings();
 
-        [SerializeField] private Transform myself;                // 自分
-        [SerializeField] private float DistanceToPlayerM = 0f;    // カメラとプレイヤーとの距離[m]
-        [SerializeField] private float HeightM = 1.2f;            // 注視点の高さ[m]
-        [SerializeField] private float RotationSensitivity = 100f;// 感度
 
-
-
-        private Rigidbody m_RigidBody;
-        private CapsuleCollider m_Capsule;
-        private float m_YRotation;
+        Rigidbody m_RigidBody;
+        CapsuleCollider m_Capsule;
+        float m_CapsuleHeight;
+        Vector3 m_CapsuleCenter;
+//        private float m_YRotation;
         private Vector3 m_GroundContactNormal;
         private bool m_Jump, m_PreviouslyGrounded, m_Jumping, m_IsGrounded;
+        private bool Crouching;        //しゃがむ
+        private bool m_Crouching;     //しゃがみ続けるためのbool
+        const float k_Half = 0.5f;     //半分
+
+
+        [SerializeField]
+        private Transform myself;                // 自分自身
+        private GameObject _child;               //子(メインカメラ)
+        [SerializeField] private float DistanceToPlayerM = 0f;    //playerとカメラの距離
+        [SerializeField] private float HeightM = 0.6f;            // カメラの高さ
+        private float m_HeightM;
+        [SerializeField] private float RotationSensitivity = 100f;// カメラの旋回速度
+
+        private string p_Num;
+
+//        private Vector3 velocity;
+        //　段差を昇る為のレイを飛ばす位置
+        [SerializeField]
+        private Transform stepRay;
+        //　レイを飛ばす距離
+        [SerializeField]
+        private float stepDistance = 0.5f;
+        //　昇れる段差
+        [SerializeField]
+        private float stepOffset = 0.3f;
+        //　昇れる角度
+        [SerializeField]
+        private float slopeLimit = 65f;
+        //　昇れる段差の位置から飛ばすレイの距離
+        [SerializeField]
+        private float slopeDistance = 1f;
+        // ヒットした情報を入れる場所
+        private RaycastHit stepHit;
 
 
         public Vector3 Velocity
@@ -110,7 +163,19 @@ namespace UnityStandardAssets.Characters.FirstPerson
         {
             get { return m_Jumping; }
         }
-
+/*
+        public bool Crouching
+        {
+            get
+            {
+#if !MOBILE_INPUT
+                return movementSettings.Crouching;
+#else
+	            return false;
+#endif
+            }
+        }
+        */
         public bool Running
         {
             get
@@ -128,10 +193,23 @@ namespace UnityStandardAssets.Characters.FirstPerson
         {
             m_RigidBody = GetComponent<Rigidbody>();
             m_Capsule = GetComponent<CapsuleCollider>();
-            mouseLook.Init (transform, cam.transform);
+            m_CapsuleHeight = m_Capsule.height;  ////////////
+            m_CapsuleCenter = m_Capsule.center;  ////////////
+            m_HeightM = HeightM;
+
+//            velocity = Vector3.zero;
+
+            //            mouseLook.Init (transform, cam.transform);
             if (myself == null)
             {
-                Debug.LogError("私はだれだ");
+                Debug.LogError("私は誰");
+                Application.Quit();
+            }
+            _child = transform.Find("MainCamera").gameObject;
+            p_Num = movementSettings.PlayerNum;
+            if (p_Num == null)
+            {
+                Debug.LogError("p_Num未入力");
                 Application.Quit();
             }
         }
@@ -141,7 +219,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
         {
             RotateView();
 
-            if (CrossPlatformInputManager.GetButtonDown("Jump") && !m_Jump)
+            if (CrossPlatformInputManager.GetButtonDown("Jump" + p_Num) && !m_Jump)
             {
                 m_Jump = true;
             }
@@ -185,6 +263,9 @@ namespace UnityStandardAssets.Characters.FirstPerson
                 {
                     m_RigidBody.Sleep();
                 }
+
+                ScaleCapsuleForCrouching();  //////////////////   しゃがみ時に判定を狭く
+                PreventStandingInLowHeadroom();    /////////////////////// 上に障害物があるか
             }
             else
             {
@@ -195,8 +276,49 @@ namespace UnityStandardAssets.Characters.FirstPerson
                 }
             }
             m_Jump = false;
+
+
         }
 
+        void ScaleCapsuleForCrouching()   //////////////////   しゃがみ時に判定を狭く
+        {
+            if (m_IsGrounded && Crouching)
+            {
+                if (m_Crouching) return;
+                m_Capsule.height = m_Capsule.height / 2f;
+                m_Capsule.center = m_Capsule.center / 2f;
+                HeightM = HeightM / 2f;
+                m_Crouching = true;
+            }
+            else
+            {
+                Ray crouchRay = new Ray(m_RigidBody.position + Vector3.up * m_Capsule.radius * k_Half, Vector3.up);
+                float crouchRayLength = m_CapsuleHeight - m_Capsule.radius * k_Half;
+                if (Physics.SphereCast(crouchRay, m_Capsule.radius * k_Half, crouchRayLength, Physics.AllLayers, QueryTriggerInteraction.Ignore))
+                {
+                    m_Crouching = true;
+                    return;
+                }
+                m_Capsule.height = m_CapsuleHeight;
+                m_Capsule.center = m_CapsuleCenter;
+                HeightM = m_HeightM;
+                m_Crouching = false;
+            }
+        }
+
+        void PreventStandingInLowHeadroom()  /////////////////////// 上に障害物があるか
+        {
+            // prevent standing up in crouch-only zones
+            if (!m_Crouching)
+            {
+                Ray crouchRay = new Ray(m_RigidBody.position + Vector3.up * m_Capsule.radius * k_Half, Vector3.up);
+                float crouchRayLength = m_CapsuleHeight - m_Capsule.radius * k_Half;
+                if (Physics.SphereCast(crouchRay, m_Capsule.radius * k_Half, crouchRayLength, Physics.AllLayers, QueryTriggerInteraction.Ignore))
+                {
+                    m_Crouching = true;
+                }
+            }
+        }
 
         private float SlopeMultiplier()
         {
@@ -222,56 +344,81 @@ namespace UnityStandardAssets.Characters.FirstPerson
 
         private Vector2 GetInput()
         {
-            
-            Vector2 input = new Vector2
+                Vector2 input = new Vector2
                 {
-                    x = CrossPlatformInputManager.GetAxis("Horizontal"),
-                    y = CrossPlatformInputManager.GetAxis("Vertical")
+                    x = CrossPlatformInputManager.GetAxis("Horizontal1" + p_Num),
+                    y = CrossPlatformInputManager.GetAxis("Vertical1" + p_Num)
                 };
-			movementSettings.UpdateDesiredTargetSpeed(input);
+
+            if (Input.GetButton("Crouch" + p_Num))
+            {
+                Crouching = true;
+            }
+            else
+            {
+                Crouching = false;
+            }
+            ///////////////////4月27日 段差///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            //登れる段差を表示
+            Debug.DrawLine(transform.position + new Vector3(0f, stepOffset, 0f), transform.position + new Vector3(0f, stepOffset, 0f) + transform.forward * slopeDistance, Color.green);
+            
+            //ステップ用のレイが地面に接触しているか
+            if (Physics.Linecast(stepRay.position, stepRay.position + stepRay.forward * stepDistance, out stepHit, LayerMask.GetMask("Field")))
+            {
+                Debug.DrawRay(stepRay.position, stepRay.position + stepRay.forward * stepDistance, Color.blue, 0.1f, false);
+                // 進行方向の地面の角度が指定以下、または登れる段差より下だった場合の移動
+
+                if (Vector3.Angle(transform.up, stepHit.normal) <= slopeLimit
+                        || (Vector3.Angle(transform.up, stepHit.normal) > slopeLimit
+                            && !Physics.Linecast(transform.position + new Vector3(0f, stepOffset, 0f), transform.position + new Vector3(0f, stepOffset, 0f) + transform.forward * slopeDistance, LayerMask.GetMask("Field", "Block")) && m_IsGrounded)
+                        )
+                {
+                    m_RigidBody.velocity = new Vector3(0f, ((Quaternion.FromToRotation(Vector3.up, stepHit.normal) * transform.forward) * 3f).y, 0f) + transform.forward * 1.5f;
+                    Debug.Log(Vector3.Angle(transform.up, stepHit.normal));
+
+                }
+                else
+                {
+//                    movementSettings.UpdateDesiredTargetSpeed(input);
+                }
+
+                               Debug.Log(Vector3.Angle(transform.up, stepHit.normal));
+
+                //ステップ用のレイが地面に接していなければ
+            }
+            else
+            {
+//                movementSettings.UpdateDesiredTargetSpeed(input);
+            }
+
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            movementSettings.UpdateDesiredTargetSpeed(input);
             return input;
         }
 
 
-        private void RotateView()
+        private void RotateView()             //カメラ
         {
-            float horizontal = CrossPlatformInputManager.GetAxis("Horizontal2") * Time.deltaTime * RotationSensitivity;
-            float vertical = CrossPlatformInputManager.GetAxis("Vertical2") * Time.deltaTime * RotationSensitivity;
+            //            m_MouseLook.LookRotation (transform, m_Camera.transform);   //
+            float horizontal = CrossPlatformInputManager.GetAxis("Horizontal2" + p_Num) * Time.deltaTime * RotationSensitivity;
+            float vertical = -CrossPlatformInputManager.GetAxis("Vertical2" + p_Num) * Time.deltaTime * RotationSensitivity;
             var lookAt = myself.position + Vector3.up * HeightM;
 
-            transform.RotateAround(lookAt, Vector3.up, horizontal);    // 回転
-            // カメラがプレイヤーの真上や真下にあるときにそれ以上回転させないようにする
-            if (cam.transform.forward.y > 0.9f && vertical < 0)
+            transform.RotateAround(lookAt, Vector3.up, horizontal);    //
+            // 
+            if (_child.transform.forward.y > 0.9f && vertical < 0)
             {
                 vertical = 0;
             }
-            if (cam.transform.forward.y < -0.9f && vertical > 0)
+            if (_child.transform.forward.y < -0.9f && vertical > 0)
             {
                 vertical = 0;
             }
-            cam.transform.RotateAround(lookAt, transform.right, vertical);
+            _child.transform.RotateAround(lookAt, transform.right, vertical);
 
-            // カメラとプレイヤーとの間の距離を調整 
-            cam.transform.position = lookAt - cam.transform.forward * DistanceToPlayerM;
+            //
+            _child.transform.position = lookAt - _child.transform.forward * DistanceToPlayerM;
 
-            // 注視点の設定
-//            cam.transform.LookAt(lookAt);
-            /*
-            //avoids the mouse looking if the game is effectively paused
-            if (Mathf.Abs(Time.timeScale) < float.Epsilon) return;
-
-            // get the rotation before it's changed
-            float oldYRotation = transform.eulerAngles.y;
-
-            mouseLook.LookRotation (transform, cam.transform);
-
-            if (m_IsGrounded || advancedSettings.airControl)
-            {
-                // Rotate the rigidbody velocity to match the new direction that the character is looking
-                Quaternion velRotation = Quaternion.AngleAxis(transform.eulerAngles.y - oldYRotation, Vector3.up);
-                m_RigidBody.velocity = velRotation*m_RigidBody.velocity;
-            }
-            */
         }
 
         /// sphere cast down just beyond the bottom of the capsule to see if the capsule is colliding round the bottom

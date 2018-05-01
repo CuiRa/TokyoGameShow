@@ -7,6 +7,7 @@ public class Health : MonoBehaviour
     public const int maxHealth = 1;
     public int currentHealth = maxHealth;
 
+
     public void Start()
     {
 
