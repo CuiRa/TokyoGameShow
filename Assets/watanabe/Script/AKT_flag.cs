@@ -7,7 +7,7 @@ public class AKT_flag : MonoBehaviour
 
     public bool omega = false;
 
-    public string tag;
+    public string tag_beta;
 
     public Vector3 pos;
 
@@ -15,7 +15,7 @@ public class AKT_flag : MonoBehaviour
     {
 
         omega = true;
-        tag = other.tag;
+        tag_beta = other.tag;
         pos = other.transform.position;
 
     }
@@ -25,7 +25,7 @@ public class AKT_flag : MonoBehaviour
     {
 
         omega = false;
-        tag = "";
+        tag_beta = "";
         pos = Vector3.zero;
 
     }

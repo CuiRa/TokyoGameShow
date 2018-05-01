@@ -1,13 +1,11 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine.UI;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-using UnityEditor.SceneManagement;
 
 #if UNITY_EDITOR
 using UnityEditor;      //!< デプロイ時にEditorスクリプトが入るとエラーになるので UNITY_EDITOR で括ってね！
+using UnityEditor.SceneManagement;
 #endif
 
 public class PlayerSelect : MonoBehaviour
