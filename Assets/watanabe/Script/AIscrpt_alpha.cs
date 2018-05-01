@@ -5,13 +5,15 @@ using System.Collections;
 
 public class AIscrpt_alpha : MonoBehaviour
 {
-   
+
+    public Area area;
     public Transform[] points;
     private int destPoint = 0;
     private NavMeshAgent agent;
     private int alpha; //ランダム
     private GameObject terget;
     private float speed = 3.5f;
+   
 
     void Start()
     {
@@ -43,31 +45,27 @@ public class AIscrpt_alpha : MonoBehaviour
         //destPoint = (destPoint + 1) % points.Length; //リセット
         destPoint = (destPoint + alpha) % points.Length;
         agent.destination = points[destPoint].position;
-        return; 
+       // return; 
     }
 
     void Update()
     {
         // Choose the next destination point when the agent gets
         // close to the current one.
-        if (!agent.pathPending && agent.remainingDistance < 1.0f) //条件成立で次のポジションに行く
+        if (!agent.pathPending && agent.remainingDistance < 1.5f) //条件成立で次のポジションに行く
             GotoNextPoint();
-    }
 
-
-    void OnTriggerStay(Collider other)
-    {
         if (this.tag == "Ogre")
         {
             agent.speed = 4.0f;
-            if (other.tag == "Player")
+            if (area != null && area.tag == "Player")
             {
-                agent.destination = other.transform.position;
+                agent.destination = area.pos;
             }
         }
         else if (this.tag == "Player")
         {
-            if(other.tag == "Ogre")
+            if (area.tag == "Ogre")
             {
                 agent.speed = 5.0f;
             }
@@ -76,6 +74,17 @@ public class AIscrpt_alpha : MonoBehaviour
                 agent.speed = 3.5f;
             }
         }
+
     }
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (this.tag == "Ogre" && other.gameObject.tag == "Player")
+        {
+            Debug.Log("HIT");
+            Destroy(other.gameObject);
+        }
+    }
+
 
 }
