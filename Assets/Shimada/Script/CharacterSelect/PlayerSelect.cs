@@ -122,8 +122,13 @@ public class PlayerSelect : MonoBehaviour
     {
         public override void OnInspectorGUI()
         {
+            //DefaultInspectorの表示
+            DrawDefaultInspector();
+
+
             //PlayerSelectの参照
             PlayerSelect PlayerSel = target as PlayerSelect;
+
 
             //Playerのカウント用、要素数のカウント
             int PlayerCount, Playerlen = PlayerSel.Player.Count;

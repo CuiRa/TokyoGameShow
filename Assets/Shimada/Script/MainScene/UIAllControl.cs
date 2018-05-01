@@ -1,11 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.UI;
 using UnityEngine;
-using UnityEditor.SceneManagement;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+
 
 #if UNITY_EDITOR
-using UnityEditor;      //!< デプロイ時にEditorスクリプトが入るとエラーになるので UNITY_EDITOR で括ってね！
+using UnityEditor;
+using UnityEditor.SceneManagement;
 #endif
 
 public class UIAllControl : MonoBehaviour
@@ -15,13 +17,11 @@ public class UIAllControl : MonoBehaviour
     [SerializeField]
     private List<GameObject> CanvasObject;
 
-    [SerializeField]
-    private List<GameObject> OgreObject;
-
     //Canvasに割り当てる用のCameraの取得
     [SerializeField]
     private List<GameObject> CameraObject;
 
+    //playerObjの取得
     [SerializeField]
     private List<GameObject> test;
 
@@ -32,8 +32,9 @@ public class UIAllControl : MonoBehaviour
     [SerializeField]
     private int ActivePlayer;
 
-
+    //scriptを変数化
     private CanvasControl[] CanvasObj = new CanvasControl[4];
+    private CanvasControl[] OgreObj = new CanvasControl[4];
 
 
     //汎用カウンター
@@ -54,6 +55,7 @@ public class UIAllControl : MonoBehaviour
 
         //破棄
         Destroy(Object);
+
 
 
         //各CanbasのSliderControlの参照
@@ -79,8 +81,9 @@ public class UIAllControl : MonoBehaviour
         //動作可能にする
         test[Ogre].GetComponent<Test>().OgreF = true;
 
-        OgreObject[Ogre].SetActive(true);
-        CanvasObject[Ogre].SetActive(false);
+
+        CanvasObj[Ogre].OgreCanvas.SetActive(true);
+        CanvasObj[Ogre].NomalCanvas.SetActive(false);
 
 
 
@@ -101,29 +104,46 @@ public class UIAllControl : MonoBehaviour
         {
             //CanvasControlを取得し、変数に代入
             CanvasObj[Counter] = CanvasObject[Counter].GetComponent<CanvasControl>();
+            OgreObj[Counter] = CanvasObject[Counter].GetComponent<CanvasControl>();
 
-            //StaminaGageの増加
+            //Gageの増加
             CanvasObj[Counter].StaminaGage += 0.01f;
-            CanvasObj[Counter].Stamina.value = CanvasObj[Counter].StaminaGage;
-
-            // 最大を超えたら0に戻す
-            if (CanvasObj[Counter].StaminaGage > 1)
-                CanvasObj[Counter].StaminaGage = 0;
 
             //鬼が入れ替わっていた時のCanvasの入れ替え
             if (!test[Ogre].GetComponent<Test>().OgreF)
             {
                 if (test[Counter].GetComponent<Test>().OgreF)
                 {
-                    OgreObject[Ogre].SetActive(false);
-                    CanvasObject[Ogre].SetActive(true);
+                    CanvasObj[Ogre].OgreCanvas.SetActive(false);
+                    CanvasObj[Ogre].NomalCanvas.SetActive(true);
 
-                    OgreObject[Counter].SetActive(true);
-                    CanvasObject[Counter].SetActive(false);
+                    CanvasObj[Counter].OgreCanvas.SetActive(true);
+                    CanvasObj[Counter].NomalCanvas.SetActive(false);
 
                     Ogre = Counter;
                 }
             }
+            else
+            {
+                //鬼Gageの増加
+                if (Counter == Ogre)
+                {
+                    OgreObj[Counter].OgreGage += 0.001f;
+                }
+            }
+
+
+            //値の変更を反映
+            CanvasObj[Counter].Stamina.value = CanvasObj[Counter].StaminaGage;
+            CanvasObj[Counter].Ogre.value = CanvasObj[Counter].OgreGage;
+
+            // スタミナが最大値を超えたら0に戻す
+            if (CanvasObj[Counter].StaminaGage > 1)
+                CanvasObj[Counter].StaminaGage = 0;
+
+            //鬼Gageが最大値を超えたらScene遷移
+            if (CanvasObj[Ogre].OgreGage > 1)
+                SceneManager.LoadScene("EndScene");
 
             Counter--;
             
@@ -168,9 +188,6 @@ public class UIAllControl : MonoBehaviour
             //CanvasObjectのカウント用、要素数のカウント
             int CanCount, Canlen = UICon.CanvasObject.Count;
 
-            //CanvasObjectのカウント用、要素数のカウント
-            int OgreCount, Ogrelen = UICon.OgreObject.Count;
-
             //CameraObjectのカウント用、要素数のカウント
             int CamCount, Camlen = UICon.CameraObject.Count;
 
@@ -190,20 +207,6 @@ public class UIAllControl : MonoBehaviour
                 GameObject Can = EditorGUILayout.ObjectField("追加", null, typeof(GameObject), true) as GameObject;
                 if (Can != null)
                     UICon.CanvasObject.Add(Can);
-            }
-
-
-            EditorGUILayout.PrefixLabel("Ogreオブジェクト");
-            // リスト表示
-            for (OgreCount = 0; OgreCount < Ogrelen; ++OgreCount)
-            {
-                UICon.OgreObject[OgreCount] = EditorGUILayout.ObjectField(UICon.OgreObject[OgreCount], typeof(GameObject), true) as GameObject;
-            }
-            if (UICon.OgreObject.Count <= 3)
-            {
-                GameObject Ogr = EditorGUILayout.ObjectField("追加", null, typeof(GameObject), true) as GameObject;
-                if (Ogr != null)
-                    UICon.OgreObject.Add(Ogr);
             }
 
 

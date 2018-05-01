@@ -5,29 +5,39 @@ using UnityEngine.UI;
 using UnityEditor.SceneManagement;
 
 #if UNITY_EDITOR
-using UnityEditor;      //!< デプロイ時にEditorスクリプトが入るとエラーになるので UNITY_EDITOR で括ってね！
+using UnityEditor;
 #endif
 
 public class CanvasControl : MonoBehaviour
 {
-    public Slider Stamina;
-    
+    //各Canvasを取得
+    public GameObject NomalCanvas;
+    public GameObject OgreCanvas;
 
+
+    //Staminaスライダーを取得
+    public Slider Stamina;
+
+    //鬼用スライダーを取得
+    public Slider Ogre;
+
+    //Player表示を取得
     public Text Player;
+
 
     //CanvasTwo,CanvasThreeのみ作成した暗幕用のImageをアタッチ
     public GameObject Black;
 
 
     //各PlayerのScriptをpublicで取得し、ステータスを取得して常にSliderに反映
+    //通常Canvas
     [System.NonSerialized]
     public float StaminaGage = 0;
 
+
+    //鬼用Canvas
     [System.NonSerialized]
-    public float InfectionGage = 0;
-
-    [System.NonSerialized]
-    public float FungusGage = 0;
+    public float OgreGage = 0;
 
 
 
@@ -36,9 +46,6 @@ public class CanvasControl : MonoBehaviour
 
 
 
-
-
-    
     /* ---- ここからInspector拡張コード ---- */
 #if UNITY_EDITOR
 
@@ -57,7 +64,10 @@ public class CanvasControl : MonoBehaviour
             EditorGUILayout.PrefixLabel("Canvasオブジェクト");
 
             // リスト表示
+            CanvasCon.NomalCanvas = EditorGUILayout.ObjectField("逃走用Canvasの取得", CanvasCon.NomalCanvas, typeof(GameObject), true) as GameObject;
+            CanvasCon.OgreCanvas = EditorGUILayout.ObjectField("鬼用Canvasの取得", CanvasCon.OgreCanvas, typeof(GameObject), true) as GameObject;
             CanvasCon.Stamina = EditorGUILayout.ObjectField("スタミナゲージ", CanvasCon.Stamina, typeof(Slider), true) as Slider;
+            CanvasCon.Ogre = EditorGUILayout.ObjectField("鬼ゲージ", CanvasCon.Ogre, typeof(Slider), true) as Slider;
             CanvasCon.Player = EditorGUILayout.ObjectField("テキスト", CanvasCon.Player, typeof(Text), true) as Text;
 
             EditorGUILayout.HelpBox("CanvasTwoとCanvasThreeのみ以下に暗幕用Imageをアタッチ", MessageType.Warning);
