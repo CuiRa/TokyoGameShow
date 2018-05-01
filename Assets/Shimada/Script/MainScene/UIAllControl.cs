@@ -128,7 +128,7 @@ public class UIAllControl : MonoBehaviour
                 //鬼Gageの増加
                 if (Counter == Ogre)
                 {
-                    OgreObj[Counter].OgreGage += 0.001f;
+                    OgreObj[Counter].OgreGage += 0.01f;
                 }
             }
 
