@@ -36,6 +36,7 @@ public class AKT_flag : MonoBehaviour
             ogre.gameObject.GetComponent<NavMeshAgent>().speed = 5.0f;
             sen = false;
             counter = 0;
+            ogre.tag = "Ogre";
             //攻撃トリガーアクティブ
         }
 
@@ -48,9 +49,9 @@ public class AKT_flag : MonoBehaviour
         {
             Debug.Log("HIT");
             obj.tag = "Player";
-            other.tag = "Ogre";
+            other.tag = "Unknown";
             //鬼になったやつを止める
-            if (other.tag == "Ogre" && counter <= 300)
+            if (other.tag == "Unknown" && counter <= 300)
             {
 
                 other.gameObject.GetComponent<NavMeshAgent>().speed = 0.0f;
