@@ -216,6 +216,10 @@ namespace UnityStandardAssets.Characters.FirstPerson
             {
                 m_Jump = true;
             }
+            if (Input.GetButtonDown("LightOn" + p_Num))
+            {
+                _child.GetComponent<Light>().enabled = !_child.GetComponent<Light>().enabled;
+            }
         }
 
 
@@ -350,10 +354,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
             {
                 Crouching = false;
             }
-            if(Input.GetButtonDown("LightOn" + p_Num))
-            {
-               _child.GetComponent<Light>().enabled = !_child.GetComponent<Light>().enabled;
-            }
+
 
             ///////////////////4åé27ì˙ íiç∑///////////////////////////////////////////////////////////////////////////////////////////////////////////////
            if(input.x !=0 || input.y != 0)
