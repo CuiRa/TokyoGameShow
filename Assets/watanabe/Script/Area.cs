@@ -6,7 +6,7 @@ public class Area : MonoBehaviour {
 
     public bool area = false;
 
-    public string tag;
+    public string tag_alpha;
 
     public Vector3 pos;
 
@@ -14,7 +14,7 @@ public class Area : MonoBehaviour {
     {
 
         area = true;
-        tag = other.tag;
+        tag_alpha = other.tag;
         pos = other.transform.position;
 
     }
@@ -23,7 +23,7 @@ public class Area : MonoBehaviour {
     {
 
         area = false;
-        tag = "";//初期化
+        tag_alpha = "";//初期化
         pos = Vector3.zero;//初期化
 
     }

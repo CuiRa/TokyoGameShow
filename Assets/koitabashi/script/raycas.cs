@@ -2,45 +2,54 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class raycas: MonoBehaviour
+namespace UnityStandardAssets.Characters.FirstPerson
 {
-    [SerializeField]
-    private Health m_Health;
-
-    // Use this for initialization
-    void Start () {
- 
-    }
-	
-	// Update is called once per frame
-	void Update () {
-        GetInput();
-    }
-
-
-    private void GetInput()
+    public class raycas : MonoBehaviour
     {
-        if (Input.GetMouseButtonDown(0) || Input.GetButtonDown("Circle"))
+        private Health m_Health;
+        [SerializeField] private RigidbodyFirstPersonController m_RigidbodyFirstPersonController;
+        [SerializeField] private Camera cam;
+        [SerializeField] private string p_Num;
+
+        // Use this for initialization
+        void Start()
         {
-            float distance = 2; // 飛ばす&表示するRayの長さ
-            float duration = 2;   // 表示期間（秒）
-            Vector3 center = new Vector3(Screen.width / 2, Screen.height / 2);
-            Ray ray = Camera.main.ScreenPointToRay(center);
-            Debug.DrawRay(ray.origin, ray.direction * distance, Color.red, duration, false);
+            m_Health = transform.root.gameObject.GetComponent<Health>();
+            m_RigidbodyFirstPersonController = transform.root.gameObject.GetComponent<RigidbodyFirstPersonController>();
+            p_Num = m_RigidbodyFirstPersonController.movementSettings.PlayerNum;
+        }
 
-            RaycastHit hit = new RaycastHit();
-            if (Physics.Raycast(ray, out hit, distance))
+        // Update is called once per frame
+        void Update()
+        {
+            GetInput();
+        }
+
+
+        private void GetInput()
+        {
+            if (Input.GetButtonDown("Circle" + p_Num) || Input.GetMouseButton(0))
             {
-                GameObject hitObject = hit.collider.gameObject;
+                float distance = 2; // 飛ばす&表示するRayの長さ
+                float duration = 1;   // 表示期間（秒）
+                Vector3 center = new Vector3(0.5f,0.5f);
+                Ray ray = cam.ViewportPointToRay(center);
+                Debug.DrawRay(ray.origin, ray.direction * distance, Color.red, duration, false);
 
-                if (hit.collider.tag == "Player")
+                RaycastHit hit = new RaycastHit();
+                if (Physics.Raycast(ray, out hit, distance))
                 {
-                    m_Health = hitObject.GetComponent<Health>();
-                    m_Health.TakeDamage(1);
-                    Debug.Log("RayがPlayerに当たった");
+                    GameObject hitObject = hit.collider.gameObject;
+
+                    if (hit.collider.tag == "Player")
+                    {
+                        m_Health = hitObject.GetComponent<Health>();
+                        m_Health.TakeDamage(1);
+                        Debug.Log("RayがPlayerに当たった");
+                    }
+
+
                 }
-
-
             }
         }
     }
