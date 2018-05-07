@@ -114,39 +114,30 @@ namespace UnityStandardAssets.Characters.FirstPerson
 //        private float m_YRotation;
         private Vector3 m_GroundContactNormal;
         private bool m_Jump, m_PreviouslyGrounded, m_Jumping, m_IsGrounded;
-        private bool Crouching;        //しゃがむ
-        private bool m_Crouching;     //しゃがみ続けるためのbool
-        const float k_Half = 0.5f;     //半分
+        private bool Crouching;                                   //しゃがむ
+        private bool m_Crouching;                                 //しゃがみ続けるためのbool
+        const float k_Half = 0.5f;                                //半分
 
 
         [SerializeField]
-        private Transform myself;                // 自分自身
-        private GameObject _child;               //子(メインカメラ)
+        private Transform myself;                                 // 自分自身
+        private GameObject _child;                                //子(メインカメラ)
+        private Transform cameraTransform;                        //子(メインカメラのトランスフォーム)
         [SerializeField] private float DistanceToPlayerM = 0f;    //playerとカメラの距離
         [SerializeField] private float HeightM = 0.6f;            // カメラの高さ
-        private float m_HeightM;
+        private float m_HeightM;                                  //立ち上がるための仮置き場
         [SerializeField] private float RotationSensitivity = 100f;// カメラの旋回速度
-
-        private string p_Num;
+        private Vector3 direction;                                //スティックのたおす方向
+        private string p_Num;                                     //PlayerNumber
 
 //        private Vector3 velocity;
-        //　段差を昇る為のレイを飛ばす位置
-        [SerializeField]
-        private Transform stepRay;
-        //　レイを飛ばす距離
-        [SerializeField]
-        private float stepDistance = 0.5f;
-        //　昇れる段差
-        [SerializeField]
-        private float stepOffset = 0.3f;
-        //　昇れる角度
-        [SerializeField]
-        private float slopeLimit = 65f;
-        //　昇れる段差の位置から飛ばすレイの距離
-        [SerializeField]
-        private float slopeDistance = 1f;
-        // ヒットした情報を入れる場所
-        private RaycastHit stepHit;
+
+        [SerializeField] private Transform stepRay;               //　段差を昇る為のレイを飛ばす位置
+        [SerializeField] private float stepDistance = 0.5f;       //　レイを飛ばす距離
+        [SerializeField] private float stepOffset = 0.3f;         //　昇れる段差
+        [SerializeField] private float slopeLimit = 65f;          //　昇れる角度
+        [SerializeField] private float slopeDistance = 1f;        //　昇れる段差の位置から飛ばすレイの距離
+        private RaycastHit stepHit;                               // ヒットした情報を入れる場所
 
 
         public Vector3 Velocity
@@ -191,6 +182,17 @@ namespace UnityStandardAssets.Characters.FirstPerson
 
         private void Start()
         {
+            if (myself == null) {
+                Debug.LogError("私は誰");
+                Application.Quit();
+            }
+            _child = transform.Find("MainCamera").gameObject;
+            cameraTransform = Camera.main.transform;
+            p_Num = movementSettings.PlayerNum;
+            if (p_Num == null) {
+                Debug.LogError("p_Num未入力");
+                Application.Quit();
+            }
             m_RigidBody = GetComponent<Rigidbody>();
             m_Capsule = GetComponent<CapsuleCollider>();
             m_CapsuleHeight = m_Capsule.height;  ////////////
@@ -200,18 +202,9 @@ namespace UnityStandardAssets.Characters.FirstPerson
 //            velocity = Vector3.zero;
 
             //            mouseLook.Init (transform, cam.transform);
-            if (myself == null)
-            {
-                Debug.LogError("私は誰");
-                Application.Quit();
-            }
-            _child = transform.Find("MainCamera").gameObject;
-            p_Num = movementSettings.PlayerNum;
-            if (p_Num == null)
-            {
-                Debug.LogError("p_Num未入力");
-                Application.Quit();
-            }
+
+
+
         }
 
 
@@ -276,7 +269,6 @@ namespace UnityStandardAssets.Characters.FirstPerson
                 }
             }
             m_Jump = false;
-
 
         }
 
@@ -349,7 +341,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
                     x = CrossPlatformInputManager.GetAxis("Horizontal1" + p_Num),
                     y = CrossPlatformInputManager.GetAxis("Vertical1" + p_Num)
                 };
-
+            var cameraForward = Vector3.Scale(cameraTransform.forward, new Vector3(1, 0, 1)).normalized;
             if (Input.GetButton("Crouch" + p_Num))
             {
                 Crouching = true;
@@ -358,40 +350,44 @@ namespace UnityStandardAssets.Characters.FirstPerson
             {
                 Crouching = false;
             }
-            ///////////////////4月27日 段差///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            //登れる段差を表示
-            Debug.DrawLine(transform.position + new Vector3(0f, stepOffset, 0f), transform.position + new Vector3(0f, stepOffset, 0f) + transform.forward * slopeDistance, Color.green);
-            
-            //ステップ用のレイが地面に接触しているか
-            if (Physics.Linecast(stepRay.position, stepRay.position + stepRay.forward * stepDistance, out stepHit, LayerMask.GetMask("Field")))
+            if(Input.GetButtonDown("LightOn" + p_Num))
             {
-                Debug.DrawRay(stepRay.position, stepRay.position + stepRay.forward * stepDistance, Color.blue, 0.1f, false);
-                // 進行方向の地面の角度が指定以下、または登れる段差より下だった場合の移動
+               _child.GetComponent<Light>().enabled = !_child.GetComponent<Light>().enabled;
+            }
 
+            ///////////////////4月27日 段差///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+           if(input.x !=0 || input.y != 0)
+            {
+                direction = cameraTransform.right * input.x + cameraForward * input.y;
+            }
+            //登れる段差を表示
+            Debug.DrawLine(transform.position + new Vector3(0f, stepOffset, 0f), transform.position + new Vector3(0f, stepOffset, 0f) + direction * slopeDistance, Color.green);
+
+            //ステップ用のレイが地面に接触しているか
+            if (Physics.Linecast(stepRay.position, stepRay.position + direction * stepDistance, out stepHit, LayerMask.GetMask("Field", "Block")) && (Mathf.Abs(input.x) > float.Epsilon || Mathf.Abs(input.y) > float.Epsilon))
+            {
+                Debug.DrawLine(stepRay.position, stepRay.position + direction * stepDistance, Color.blue, 0.1f, false);
+               
+                // 進行方向の地面の角度が指定以下、または登れる段差より下だった場合の移動
                 if (Vector3.Angle(transform.up, stepHit.normal) <= slopeLimit
                         || (Vector3.Angle(transform.up, stepHit.normal) > slopeLimit
-                            && !Physics.Linecast(transform.position + new Vector3(0f, stepOffset, 0f), transform.position + new Vector3(0f, stepOffset, 0f) + transform.forward * slopeDistance, LayerMask.GetMask("Field", "Block")) && m_IsGrounded)
+                            && !Physics.Linecast(transform.position + new Vector3(0f, stepOffset, 0f), transform.position + new Vector3(0f, stepOffset, 0f) + direction * slopeDistance, LayerMask.GetMask("Field", "Block")))
                         )
                 {
-                    m_RigidBody.velocity = new Vector3(0f, ((Quaternion.FromToRotation(Vector3.up, stepHit.normal) * transform.forward) * 3f).y, 0f) + transform.forward * 1.5f;
-                    Debug.Log(Vector3.Angle(transform.up, stepHit.normal));
-
+                    m_RigidBody.velocity = new Vector3(0f, ((Quaternion.FromToRotation(Vector3.up, stepHit.normal) * direction) * 2f).y, 0f) + direction * 1.0f; //上と進行方向に力を加える
+//                    Debug.Log(Vector3.Angle(transform.up, stepHit.normal));
                 }
-                else
-                {
-//                    movementSettings.UpdateDesiredTargetSpeed(input);
+                else {
+                    //                        movementSettings.UpdateDesiredTargetSpeed(input);
                 }
-
-                               Debug.Log(Vector3.Angle(transform.up, stepHit.normal));
-
                 //ステップ用のレイが地面に接していなければ
             }
-            else
-            {
-//                movementSettings.UpdateDesiredTargetSpeed(input);
+            else {
+                //                   movementSettings.UpdateDesiredTargetSpeed(input);
             }
 
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
             movementSettings.UpdateDesiredTargetSpeed(input);
             return input;
         }
