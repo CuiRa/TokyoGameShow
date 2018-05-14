@@ -225,8 +225,8 @@ namespace UnityStandardAssets.Characters.FirstPerson
         private void GetInput(out float speed)
         {
             // Read input
-            float horizontal = CrossPlatformInputManager.GetAxis("Horizontal");
-            float vertical = CrossPlatformInputManager.GetAxis("Vertical");
+            float horizontal = CrossPlatformInputManager.GetAxis("Horizontal1P1");
+            float vertical = CrossPlatformInputManager.GetAxis("Vertical1P1");
 
             bool waswalking = m_IsWalking;
 
@@ -234,7 +234,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
             // On standalone builds, walk/run speed is modified by a key press.
             // keep track of whether or not the character is walking or running
 //            m_IsWalking = !Input.GetKey(KeyCode.LeftShift);
-            m_IsWalking = !Input.GetButton("Dash");     //����
+            m_IsWalking = !Input.GetButton("DashP1");     //����
 #endif
             // set the desired speed to be walking or running
             speed = m_IsWalking ? m_WalkSpeed : m_RunSpeed;
@@ -259,8 +259,8 @@ namespace UnityStandardAssets.Characters.FirstPerson
         private void RotateView()      //�J��������
         {
             //            m_MouseLook.LookRotation (transform, m_Camera.transform);   //�}�E�X�Ŏ��_�ύX
-            float horizontal = CrossPlatformInputManager.GetAxis("Horizontal2") * Time.deltaTime * RotationSensitivity;
-            float vertical = -CrossPlatformInputManager.GetAxis("Vertical2") * Time.deltaTime * RotationSensitivity;
+            float horizontal = CrossPlatformInputManager.GetAxis("Horizontal2P1") * Time.deltaTime * RotationSensitivity;
+            float vertical = -CrossPlatformInputManager.GetAxis("Vertical2P1") * Time.deltaTime * RotationSensitivity;
             var lookAt = myself.position + Vector3.up * HeightM;
            
             transform.RotateAround(lookAt, Vector3.up, horizontal);    // ��]

@@ -117,17 +117,16 @@ namespace UnityStandardAssets.Characters.FirstPerson
         private bool Crouching;                                   //しゃがむ
         private bool m_Crouching;                                 //しゃがみ続けるためのbool
         const float k_Half = 0.5f;                                //半分
-
+        public float yVelocity = 1.0f;
 
         [SerializeField]
         private Transform myself;                                 // 自分自身
         private GameObject _child;                                //子(メインカメラ)
         private Transform cameraTransform;                        //子(メインカメラのトランスフォーム)
         [SerializeField] private float DistanceToPlayerM = 0f;    //playerとカメラの距離
-        [SerializeField] private float HeightM = 0.6f;            // カメラの高さ
+        [SerializeField] private float HeightM = 1.6f;            // カメラの高さ
         private float m_HeightM;                                  //立ち上がるための仮置き場
         [SerializeField] private float RotationSensitivity = 100f;// カメラの旋回速度
-        private Vector3 direction;                                //スティックのたおす方向
         private string p_Num;                                     //PlayerNumber
 
 //        private Vector3 velocity;
@@ -210,13 +209,13 @@ namespace UnityStandardAssets.Characters.FirstPerson
 
         private void Update()
         {
-            RotateView();
+            RotateView();  ///カメラ
 
             if (CrossPlatformInputManager.GetButtonDown("Jump" + p_Num) && !m_Jump)
             {
                 m_Jump = true;
             }
-            if (Input.GetButtonDown("LightOn" + p_Num))
+            if (CrossPlatformInputManager.GetButtonDown("LightOn" + p_Num))
             {
                 _child.GetComponent<Light>().enabled = !_child.GetComponent<Light>().enabled;
             }
@@ -233,7 +232,6 @@ namespace UnityStandardAssets.Characters.FirstPerson
                 // always move along the camera forward as it is the direction that it being aimed at
                 Vector3 desiredMove = cam.transform.forward*input.y + cam.transform.right*input.x;
                 desiredMove = Vector3.ProjectOnPlane(desiredMove, m_GroundContactNormal).normalized;
-
                 desiredMove.x = desiredMove.x*movementSettings.CurrentTargetSpeed;
                 desiredMove.z = desiredMove.z*movementSettings.CurrentTargetSpeed;
                 desiredMove.y = desiredMove.y*movementSettings.CurrentTargetSpeed;
@@ -278,12 +276,13 @@ namespace UnityStandardAssets.Characters.FirstPerson
 
         void ScaleCapsuleForCrouching()   //////////////////   しゃがみ時に判定を狭く
         {
-            if (m_IsGrounded && Crouching)
+            if (Crouching && m_IsGrounded)
             {
                 if (m_Crouching) return;
                 m_Capsule.height = m_Capsule.height / 2f;
                 m_Capsule.center = m_Capsule.center / 2f;
-                HeightM = HeightM / 2f;
+                //                HeightM = HeightM / 2f;
+
                 m_Crouching = true;
             }
             else
@@ -297,7 +296,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
                 }
                 m_Capsule.height = m_CapsuleHeight;
                 m_Capsule.center = m_CapsuleCenter;
-                HeightM = m_HeightM;
+//                HeightM = m_HeightM;
                 m_Crouching = false;
             }
         }
@@ -346,26 +345,28 @@ namespace UnityStandardAssets.Characters.FirstPerson
                     y = CrossPlatformInputManager.GetAxis("Vertical1" + p_Num)
                 };
             var cameraForward = Vector3.Scale(cameraTransform.forward, new Vector3(1, 0, 1)).normalized;
-            if (Input.GetButton("Crouch" + p_Num))
+            if (Input.GetButton("Crouch" + p_Num) && !m_Jumping)
             {
                 Crouching = true;
+                if (HeightM > m_HeightM / 2) { HeightM = Mathf.SmoothDamp(HeightM, HeightM / 2, ref yVelocity, 0.1f); }
             }
             else
             {
                 Crouching = false;
+                if (HeightM < m_HeightM) { HeightM = Mathf.SmoothDamp(HeightM, m_HeightM, ref yVelocity, 0.1f); }
             }
 
 
             ///////////////////4月27日 段差///////////////////////////////////////////////////////////////////////////////////////////////////////////////
            if(input.x !=0 || input.y != 0)
             {
-                direction = cameraTransform.right * input.x + cameraForward * input.y;
-            }
+               Vector3 direction = cameraTransform.right * input.x + cameraForward * input.y;
+            
             //登れる段差を表示
             Debug.DrawLine(transform.position + new Vector3(0f, stepOffset, 0f), transform.position + new Vector3(0f, stepOffset, 0f) + direction * slopeDistance, Color.green);
-
-            //ステップ用のレイが地面に接触しているか
-            if (Physics.Linecast(stepRay.position, stepRay.position + direction * stepDistance, out stepHit, LayerMask.GetMask("Field", "Block")) && (Mathf.Abs(input.x) > float.Epsilon || Mathf.Abs(input.y) > float.Epsilon))
+                Debug.DrawLine(stepRay.position, stepRay.position + direction * stepDistance, Color.blue, 0.1f, false);
+                //ステップ用のレイが地面に接触しているか
+                if (Physics.Linecast(stepRay.position, stepRay.position + direction * stepDistance, out stepHit, LayerMask.GetMask("Field", "Block")) && (Mathf.Abs(input.x) > float.Epsilon || Mathf.Abs(input.y) > float.Epsilon))
             {
                 Debug.DrawLine(stepRay.position, stepRay.position + direction * stepDistance, Color.blue, 0.1f, false);
                
@@ -375,18 +376,16 @@ namespace UnityStandardAssets.Characters.FirstPerson
                             && !Physics.Linecast(transform.position + new Vector3(0f, stepOffset, 0f), transform.position + new Vector3(0f, stepOffset, 0f) + direction * slopeDistance, LayerMask.GetMask("Field", "Block")))
                         )
                 {
-                    m_RigidBody.velocity = new Vector3(0f, ((Quaternion.FromToRotation(Vector3.up, stepHit.normal) * direction) * 2f).y, 0f) + direction * 1.0f; //上と進行方向に力を加える
+                    m_RigidBody.velocity = new Vector3(0f, ((Quaternion.FromToRotation(Vector3.up, stepHit.normal) * direction) * 2f).y, 0f) + direction * movementSettings.CurrentTargetSpeed; //上と進行方向に力を加える
 //                    Debug.Log(Vector3.Angle(transform.up, stepHit.normal));
                 }
                 else {
-                    //                        movementSettings.UpdateDesiredTargetSpeed(input);
                 }
                 //ステップ用のレイが地面に接していなければ
             }
             else {
-                //                   movementSettings.UpdateDesiredTargetSpeed(input);
             }
-
+            }
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
             movementSettings.UpdateDesiredTargetSpeed(input);
